@@ -11,26 +11,28 @@ also installs detectron2 with a few simple commands.
 - PyTorch ≥ 1.3
 - [torchvision](https://github.com/pytorch/vision/) that matches the PyTorch installation.
 	You can install them together at [pytorch.org](https://pytorch.org) to make sure of this.
-- OpenCV, needed by demo and visualization
+- OpenCV, optional, needed by demo and visualization
 - pycocotools: `pip install cython; pip install 'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'`
-- GCC ≥ 4.9
+- gcc & g++ ≥ 4.9
 
 
 ### Build and Install Detectron2
 
 After having the above dependencies, run:
 ```
+pip install 'git+https://github.com/facebookresearch/detectron2.git'
+# (add --user if you don't have permission)
+
+# Or, to install it from a local clone:
 git clone https://github.com/facebookresearch/detectron2.git
-cd detectron2
-pip install -e .
+cd detectron2 && pip install -e .
 
-# or if you are on macOS
+# Or if you are on macOS
 # MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ pip install -e .
-
-# or, as an alternative to `pip install`, use
-# python setup.py build develop
 ```
-Note: you often need to rebuild detectron2 after reinstalling PyTorch.
+
+To __rebuild__ detectron2 that's built from a local clone, `rm -rf build/ **/*.so` then `pip install -e .`.
+You often need to rebuild detectron2 after reinstalling PyTorch.
 
 ### Common Installation Issues
 
@@ -60,7 +62,7 @@ Undefined C++ symbols in `detectron2/_C*.so`.
 Usually it's because the library is compiled with a newer C++ compiler but run with an old C++ run time.
 This can happen with old anaconda.
 
-Try `conda update libgcc`. Then remove the files you built (`build/`, `**/*.so`) and rebuild them.
+Try `conda update libgcc`. Then rebuild detectron2.
 </details>
 
 <details>

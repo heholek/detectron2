@@ -1,4 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+import json
 import math
 import numpy as np
 import unittest
@@ -18,8 +19,8 @@ class TestBoxMode(unittest.TestCase):
         for tp in [list, tuple]:
             box = tp([5, 5, 10, 10])
             output = self._convert_xy_to_wh(box)
-            self.assertTrue(isinstance(output, tp))
-            self.assertTrue(output == tp([5, 5, 5, 5]))
+            self.assertIsInstance(output, tp)
+            self.assertEqual(output, tp([5, 5, 5, 5]))
 
             with self.assertRaises(Exception):
                 self._convert_xy_to_wh([box])
@@ -32,7 +33,7 @@ class TestBoxMode(unittest.TestCase):
         self.assertTrue((output[0] == [5, 5, 5, 5]).all())
         self.assertTrue((output[1] == [1, 1, 1, 2]).all())
 
-    def test_box_convert_tensor(self):
+    def test_box_convert_cpu_tensor(self):
         box = torch.tensor([[5, 5, 10, 10], [1, 1, 2, 3]])
         output = self._convert_xy_to_wh(box)
         self.assertEqual(output.dtype, box.dtype)
@@ -41,12 +42,23 @@ class TestBoxMode(unittest.TestCase):
         self.assertTrue((output[0] == [5, 5, 5, 5]).all())
         self.assertTrue((output[1] == [1, 1, 1, 2]).all())
 
+    @unittest.skipIf(not torch.cuda.is_available(), "CUDA unavailable")
+    def test_box_convert_cuda_tensor(self):
+        box = torch.tensor([[5, 5, 10, 10], [1, 1, 2, 3]]).cuda()
+        output = self._convert_xy_to_wh(box)
+        self.assertEqual(output.dtype, box.dtype)
+        self.assertEqual(output.shape, box.shape)
+        self.assertEqual(output.device, box.device)
+        output = output.cpu().numpy()
+        self.assertTrue((output[0] == [5, 5, 5, 5]).all())
+        self.assertTrue((output[1] == [1, 1, 1, 2]).all())
+
     def test_box_convert_xywha_to_xyxy_list(self):
         for tp in [list, tuple]:
             box = tp([50, 50, 30, 20, 0])
             output = self._convert_xywha_to_xyxy(box)
-            self.assertTrue(isinstance(output, tp))
-            self.assertTrue(output == tp([35, 40, 65, 60]))
+            self.assertIsInstance(output, tp)
+            self.assertEqual(output, tp([35, 40, 65, 60]))
 
             with self.assertRaises(Exception):
                 self._convert_xywha_to_xyxy([box])
@@ -82,6 +94,21 @@ class TestBoxMode(unittest.TestCase):
 
             self.assertTrue(torch.allclose(output, expected, atol=1e-6), "output={}".format(output))
 
+    def test_json_serializable(self):
+        payload = {"box_mode": BoxMode.XYWH_REL}
+        try:
+            json.dumps(payload)
+        except Exception:
+            self.fail("JSON serialization failed")
+
+    def test_json_deserializable(self):
+        payload = '{"box_mode": 2}'
+        obj = json.loads(payload)
+        try:
+            obj["box_mode"] = BoxMode(obj["box_mode"])
+        except Exception:
+            self.fail("JSON deserialization failed")
+
 
 class TestBoxIOU(unittest.TestCase):
     def test_pairwise_iou(self):
@@ -107,7 +134,7 @@ class TestBoxIOU(unittest.TestCase):
 
         ious = pairwise_iou(Boxes(boxes1), Boxes(boxes2))
 
-        assert torch.allclose(ious, expected_ious)
+        self.assertTrue(torch.allclose(ious, expected_ious))
 
 
 if __name__ == "__main__":
